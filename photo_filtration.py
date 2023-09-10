@@ -48,6 +48,8 @@ def perform_face_filtering():
     if not os.path.exists(no_match_directory):
         os.makedirs(no_match_directory)
 
+    subfolders = [f for f in os.listdir(known_faces_directory) if os.path.isdir(os.path.join(known_faces_directory, f))]
+    num_subfolders = len(subfolders)
     total_files = len(os.listdir(input_directory))
     processed_files = 0
 
@@ -119,7 +121,7 @@ def perform_face_filtering():
 
             # Update the progress bar
             processed_files += 1
-            progress_percentage = (processed_files / total_files) * 100
+            progress_percentage = ((processed_files / total_files) * 100)/num_subfolders
             percentage_label["text"] = f"{int(progress_percentage)}%"
             progress_bar.create_rectangle(0, 0, progress_percentage * 2, 20, fill="#8bc34a")
             progress_bar.update()
