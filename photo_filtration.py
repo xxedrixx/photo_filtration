@@ -43,28 +43,13 @@ def perform_face_filtering():
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-    #load the known face encodings
-    known_faces = {}
-    total_files = len(os.listdir(input_directory))
-    processed_files = 0
-
-    for file_name in os.listdir(known_faces_directory):
-        person_name = os.path.splitext(file_name)[0]
-        person_directory = os.path.join(output_directory, person_name)
-
-        if not os.path.exists(person_directory):
-            os.makedirs(person_directory)
-
-        image = face_recognition.load_image_file(
-            os.path.join(known_faces_directory, file_name))
-        face_encodings = face_recognition.face_encodings(image)
-
-        known_faces[person_name] = face_encodings
-
-    #create a directory for images with no match
+    # Create a directory for images with no match
     no_match_directory = os.path.join(output_directory, "no_match")
     if not os.path.exists(no_match_directory):
         os.makedirs(no_match_directory)
+
+    total_files = len(os.listdir(input_directory))
+    processed_files = 0
 
     #create the progress bar
     percentage_label = tk.Label(window, text="0%", bg="#e5e5e5")
@@ -76,51 +61,69 @@ def perform_face_filtering():
     progress_bar = tk.Canvas(window, width=200, height=20, bg="white", relief=tk.SUNKEN)
     progress_bar.place(x=200, y=320, anchor=tk.CENTER)
 
-    #iterate over the input directory
-    for file_name in os.listdir(input_directory):
-        image_path = os.path.join(input_directory, file_name)
+    # Iterate over the subdirectories in the known faces directory
+    for person_name in os.listdir(known_faces_directory):
+        person_directory = os.path.join(known_faces_directory, person_name)
 
-        #load the input image
-        image = face_recognition.load_image_file(image_path)
+        if not os.path.isdir(person_directory):
+            continue  # Skip non-directory entries
 
-        #find face locations and encodings in the image
-        face_locations = face_recognition.face_locations(image)
-        face_encodings = face_recognition.face_encodings(image, face_locations)
+        # Create a corresponding output directory for this person
+        person_output_directory = os.path.join(output_directory, person_name)
+        if not os.path.exists(person_output_directory):
+            os.makedirs(person_output_directory)
 
-        #flag to indicate if any match is found
-        match_found = False
+        # Load the known face encodings for this person
+        known_faces_encodings = []
+        for file_name in os.listdir(person_directory):
+            image = face_recognition.load_image_file(
+                os.path.join(person_directory, file_name))
+            face_encodings = face_recognition.face_encodings(image)
+            if face_encodings:
+                known_faces_encodings.extend(face_encodings)
 
-        #iterate over the face encodings in the image
-        for face_encoding in face_encodings:
-            #compare the face encoding with the known face encodings
-            for person_name, known_face_encodings in known_faces.items():
+        # Iterate over the input directory
+        for file_name in os.listdir(input_directory):
+            image_path = os.path.join(input_directory, file_name)
+
+            # Load the input image
+            image = face_recognition.load_image_file(image_path)
+
+            # Find face locations and encodings in the image
+            face_locations = face_recognition.face_locations(image)
+            face_encodings = face_recognition.face_encodings(image, face_locations)
+
+            # Flag to indicate if any match is found
+            match_found = False
+
+            # Iterate over the face encodings in the image
+            for face_encoding in face_encodings:
+                # Compare the face encoding with the known face encodings
                 matches = face_recognition.compare_faces(
-                    known_face_encodings, face_encoding)
+                    known_faces_encodings, face_encoding)
 
                 if any(matches):
-                    #copy the image to the corresponding directory
-                    person_directory = os.path.join(
-                        output_directory, person_name)
-                    shutil.copy2(image_path, person_directory)
+                    # Copy the image to the corresponding person's directory
+                    shutil.copy2(image_path, person_output_directory)
                     print(
-                        f"Image '{file_name}' contains a known face ({person_name}) and has been copied to ({person_directory}) directory.")
+                        f"Image '{file_name}' contains a known face ({person_name}) and has been copied to ({person_output_directory}) directory.")
                     match_found = True
                     break
 
-        if not match_found:
-            #move the image to the 'no_match' directory
-            no_match_path = os.path.join(no_match_directory, file_name)
-            shutil.copy2(image_path, no_match_path)
-            print(
-                f"Image '{file_name}' does not contain a known face and has been moved to 'no_match' folder.")
+            if not match_found:
+                # Move the image to the 'no_match' directory
+                no_match_path = os.path.join(no_match_directory, file_name)
+                shutil.copy2(image_path, no_match_path)
+                print(
+                    f"Image '{file_name}' does not contain a known face and has been moved to 'no_match' folder.")
 
-        #update the progress bar
-        processed_files += 1
-        progress_percentage = (processed_files / total_files) * 100
-        percentage_label["text"] = f"{int(progress_percentage)}%"
-        progress_bar.create_rectangle(0, 0, progress_percentage * 2, 20, fill="#8bc34a")
-        progress_bar.update()
-        time.sleep(0.1) 
+            # Update the progress bar
+            processed_files += 1
+            progress_percentage = (processed_files / total_files) * 100
+            percentage_label["text"] = f"{int(progress_percentage)}%"
+            progress_bar.create_rectangle(0, 0, progress_percentage * 2, 20, fill="#8bc34a")
+            progress_bar.update()
+            time.sleep(0.1)
 
     messagebox.showinfo("Success", "Face filtering complete.")
 
