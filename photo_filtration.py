@@ -112,13 +112,6 @@ def perform_face_filtering():
                     match_found = True
                     break
 
-            if not match_found:
-                # Move the image to the 'no_match' directory
-                no_match_path = os.path.join(no_match_directory, file_name)
-                shutil.copy2(image_path, no_match_path)
-                print(
-                    f"Image '{file_name}' does not contain a known face and has been moved to 'no_match' folder.")
-
             # Update the progress bar
             processed_files += 1
             progress_percentage = ((processed_files / total_files) * 100)/num_subfolders
@@ -126,6 +119,13 @@ def perform_face_filtering():
             progress_bar.create_rectangle(0, 0, progress_percentage * 2, 20, fill="#8bc34a")
             progress_bar.update()
             time.sleep(0.1)
+
+    if not match_found:
+                # Move the image to the 'no_match' directory
+                no_match_path = os.path.join(no_match_directory, file_name)
+                shutil.copy2(image_path, no_match_path)
+                print(
+                    f"Image '{file_name}' does not contain a known face and has been moved to 'no_match' folder.")
 
     messagebox.showinfo("Success", "Face filtering complete.")
 
